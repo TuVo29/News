@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trang Quản Trị</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar-link:hover { transform: translateX(5px); }
+        .modal { transition: opacity 0.3s ease; }
+        .modal-content { transform: scale(0.95); transition: transform 0.3s ease; }
+        .modal-open .modal-content { transform: scale(1); }
+        @media (max-width: 768px) {
+            .sidebar { width: 100%; height: auto; }
+            .main-content { padding: 1rem; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans antialiased">
+    <!-- Header -->
+    <header class="bg-indigo-700 text-white p-4 flex justify-between items-center shadow-lg">
+        <h1 class="text-2xl font-extrabold tracking-tight">Trang Quản Trị</h1>
+        <div class="flex items-center space-x-4">
+            <span class="text-sm">Tên Admin</span>
+            <button class="bg-indigo-500 hover:bg-indigo-600 px-3 py-1 rounded transition">Đăng xuất</button>
+        </div>
+    </header>
+
+    <!-- Layout -->
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-gray-900 text-white p-6 shadow-lg">
+            <nav>
+                <ul>
+                    <li class="mb-3"><a href="#" onclick="loadSection('binh-luan')" class="sidebar-link flex items-center p-3 hover:bg-gray-700 rounded-lg transition"><i class="fas fa-comment mr-2"></i> Bình Luận</a></li>
+                    <li class="mb-3"><a href="#" onclick="loadSection('loai-tin')" class="sidebar-link flex items-center p-3 hover:bg-gray-700 rounded-lg transition"><i class="fas fa-tags mr-2"></i> Loại Tin</a></li>
+                    <li class="mb-3"><a href="#" onclick="loadSection('nhomtin')" class="sidebar-link flex items-center p-3 hover:bg-gray-700 rounded-lg transition"><i class="fas fa-folder mr-2"></i> Nhóm Tin</a></li>
+                    <li class="mb-3"><a href="#" onclick="loadSection('tin')" class="sidebar-link flex items-center p-3 hover:bg-gray-700 rounded-lg transition"><i class="fas fa-newspaper mr-2"></i> Tin Tức</a></li>
+                    <li class="mb-3"><a href="#" onclick="loadSection('users')" class="sidebar-link flex items-center p-3 hover:bg-gray-700 rounded-lg transition"><i class="fas fa-users mr-2"></i> Người Dùng</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main id="main-content" class="flex-1 p-8 main-content">
+            <h2 id="section-title" class="text-3xl font-bold text-gray-800 mb-6">Chào mừng đến với trang quản trị</h2>
+            <div id="content" class="bg-white p-6 rounded-lg shadow-lg"></div>
+        </main>
+    </div>
+
+    <!-- Modal for CRUD -->
+    <div id="modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center modal">
+        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md modal-content">
+            <h3 id="modal-title" class="text-xl font-bold text-gray-800 mb-6"></h3>
+            <div id="modal-content"></div>
+            <div class="mt-6 flex justify-end space-x-3">
+                <button onclick="closeModal()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg transition">Hủy</button>
+                <button id="save-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition">Lưu</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'https://apiwebnews.onrender.com/api/admin/admin';
+
+        async function loadSection(section) {
+            document.getElementById('section-title').innerText = `Quản lý ${section.replace('-', ' ')}`;
+            const content = document.getElementById('content');
+            content.innerHTML = '<p class="text-gray-500">Đang tải...</p>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/${section}`);
+                if (!response.ok) throw new Error(`Lỗi ${response.status}: Không thể tải dữ liệu`);
+                const result = await response.json();
+                const data = result.data;
+
+                let html = '';
+                if (section !== 'loai-tin') {
+                    html += `<button onclick="openModal('create', '${section}')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg mb-6 transition">Thêm mới</button>`;
+                } else {
+                    html += `<button disabled class="bg-gray-400 text-white px-4 py-2 rounded-lg mb-6 cursor-not-allowed" title="Tạo mới loại tin không được hỗ trợ">Thêm mới</button>`;
+                }
+                html += '<table class="w-full border-collapse bg-white rounded-lg shadow"><thead><tr class="bg-gray-100">';
+                
+                const headers = {
+                    'binh-luan': ['ID', 'Email', 'Thời gian', 'Nội dung', 'Tin', 'Trạng thái', 'Hành động'],
+                    'loai-tin': ['ID', 'Tên loại tin', 'Trạng thái', 'Hành động'],
+                    'nhomtin': ['ID', 'Tên nhóm tin', 'Trạng thái', 'Hành động'],
+                    'tin': ['ID', 'Tiêu đề', 'Ngày đăng', 'Tác giả', 'Tin hot', 'Trạng thái', 'Hành động'],
+                    'users': ['ID', 'Tên', 'Email', 'Ngày tạo', 'Hành động']
+                };
+
+                headers[section].forEach(header => html += `<th class="border p-3 text-left text-gray-600">${header}</th>`);
+                html += '</tr></thead><tbody>';
+
+                data.forEach(item => {
+                    html += '<tr class="hover:bg-gray-50">';
+                    if (section === 'binh-luan') {
+                        html += `<td class="border p-3">${item.id}</td><td class="border p-3">${item.email}</td><td class="border p-3">${item.thoi_gian}</td><td class="border p-3">${item.noi_dung}</td><td class="border p-3">${item.tin?.tieu_de || 'N/A'}</td><td class="border p-3">${item.trang_thai ? 'Hoạt động' : 'Ẩn'}</td>`;
+                    } else if (section === 'loai-tin') {
+                        html += `<td class="border p-3">${item.id}</td><td class="border p-3">${item.ten_loai_tin}</td><td class="border p-3">${item.trang_thai ? 'Hoạt động' : 'Ẩn'}</td>`;
+                    } else if (section === 'nhomtin') {
+                        html += `<td class="border p-3">${item.id}</td><td class="border p-3">${item.ten_nhom_tin}</td><td class="border p-3">${item.trang_thai ? 'Hoạt động' : 'Ẩn'}</td>`;
+                    } else if (section === 'tin') {
+                        html += `<td class="border p-3">${item.id}</td><td class="border p-3">${item.tieu_de}</td><td class="border p-3">${item.ngay_dang_tin}</td><td class="border p-3">${item.tac_gia}</td><td class="border p-3">${item.tin_hot ? 'Có' : 'Không'}</td><td class="border p-3">${item.trang_thai ? 'Hoạt động' : 'Ẩn'}</td>`;
+                    } else if (section === 'users') {
+                        html += `<td class="border p-3">${item.id}</td><td class="border p-3">${item.name}</td><td class="border p-3">${item.email}</td><td class="border p-3">${item.created_at}</td>`;
+                    }
+                    html += `<td class="border p-3"><button onclick="openModal('edit', '${section}', ${item.id})" class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-lg mr-2 transition">Sửa</button> <button onclick="deleteItem('${section}', ${item.id})" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg transition">Xóa</button></td>`;
+                    html += '</tr>';
+                });
+
+                html += '</tbody></table>';
+                content.innerHTML = html;
+            } catch (error) {
+                content.innerHTML = `<p class="text-red-500">Lỗi: ${error.message}</p>`;
+            }
+        }
+
+        async function fetchOptions(endpoint) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/${endpoint}`);
+                if (!response.ok) throw new Error(`Lỗi ${response.status}`);
+                const result = await response.json();
+                return result.data;
+            } catch (error) {
+                console.error(`Lỗi khi lấy dữ liệu ${endpoint}:`, error);
+                return [];
+            }
+        }
+
+        async function openModal(action, section, id = null) {
+            if (section === 'loai-tin' && action === 'create') {
+                alert('Tạo mới loại tin không được hỗ trợ bởi API.');
+                return;
+            }
+
+            const modal = document.getElementById('modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalContent = document.getElementById('modal-content');
+            modalTitle.innerText = action === 'create' ? `Thêm mới ${section.replace('-', ' ')}` : `Chỉnh sửa ${section.replace('-', ' ')}`;
+            modalContent.innerHTML = '';
+
+            if (section === 'binh-luan') {
+                const tins = await fetchOptions('tin');
+                modalContent.innerHTML = `
+                    <select id="tin_id" class="w-full p-2 border rounded mb-3">
+                        <option value="">Chọn tin</option>
+                        ${tins.map(tin => `<option value="${tin.id}">${tin.tieu_de}</option>`).join('')}
+                    </select>
+                    <input id="email" class="w-full p-2 border rounded mb-3" placeholder="Email" />
+                    <textarea id="noi_dung" class="w-full p-2 border rounded mb-3" placeholder="Nội dung"></textarea>
+                    <label class="flex items-center"><input type="checkbox" id="trang_thai" class="mr-2" /> Hoạt động</label>
+                `;
+            } else if (section === 'loai-tin') {
+                modalContent.innerHTML = `
+                    <input id="ten_loai_tin" class="w-full p-2 border rounded mb-3" placeholder="Tên loại tin" />
+                    <label class="flex items-center"><input type="checkbox" id="trang_thai" class="mr-2" /> Hoạt động</label>
+                `;
+            } else if (section === 'nhomtin') {
+                modalContent.innerHTML = `
+                    <input id="ten_nhom_tin" class="w-full p-2 border rounded mb-3" placeholder="Tên nhóm tin" />
+                    <label class="flex items-center"><input type="checkbox" id="trang_thai" class="mr-2" /> Hoạt động</label>
+                `;
+            } else if (section === 'tin') {
+                const loaiTins = await fetchOptions('loai-tin');
+                modalContent.innerHTML = `
+                    <input id="tieu_de" class="w-full p-2 border rounded mb-3" placeholder="Tiêu đề" />
+                    <input id="hinh_dai_dien" type="text" class="w-full p-2 border rounded mb-3" placeholder="URL hình đại diện (images/tinX.jpg)" />
+                    <textarea id="mo_ta" class="w-full p-2 border rounded mb-3" placeholder="Mô tả"></textarea>
+                    <textarea id="noi_dung" class="w-full p-2 border rounded mb-3" placeholder="Nội dung"></textarea>
+                    <input id="tac_gia" class="w-full p-2 border rounded mb-3" placeholder="Tác giả" />
+                    <select id="loai_tin_id" class="w-full p-2 border rounded mb-3">
+                        <option value="">Chọn loại tin</option>
+                        ${loaiTins.map(lt => `<option value="${lt.id}">${lt.ten_loai_tin}</option>`).join('')}
+                    </select>
+                    <label class="flex items-center mb-3"><input type="checkbox" id="tin_hot" class="mr-2" /> Tin hot</label>
+                    <label class="flex items-center"><input type="checkbox" id="trang_thai" class="mr-2" /> Hoạt động</label>
+                `;
+            } else if (section === 'users') {
+                modalContent.innerHTML = `
+                    <input id="name" class="w-full p-2 border rounded mb-3" placeholder="Tên" />
+                    <input id="email" class="w-full p-2 border rounded mb-3" placeholder="Email" />
+                `;
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('modal-open');
+
+            document.getElementById('save-btn').onclick = () => saveItem(action, section, id);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('modal');
+            modal.classList.remove('modal-open');
+            modal.classList.add('hidden');
+        }
+
+        async function saveItem(action, section, id) {
+            if (section === 'loai-tin' && action === 'create') {
+                alert('Tạo mới loại tin không được hỗ trợ bởi API.');
+                return;
+            }
+
+            const data = {};
+            if (section === 'binh-luan') {
+                data.tin_id = document.getElementById('tin_id').value;
+                data.email = document.getElementById('email').value;
+                data.noi_dung = document.getElementById('noi_dung').value;
+                data.trang_thai = document.getElementById('trang_thai').checked;
+            } else if (section === 'loai-tin') {
+                data.ten_loai_tin = document.getElementById('ten_loai_tin').value;
+                data.trang_thai = document.getElementById('trang_thai').checked;
+            } else if (section === 'nhomtin') {
+                data.ten_nhom_tin = document.getElementById('ten_nhom_tin').value;
+                data.trang_thai = document.getElementById('trang_thai').checked;
+            } else if (section === 'tin') {
+                data.tieu_de = document.getElementById('tieu_de').value;
+                data.hinh_dai_dien = document.getElementById('hinh_dai_dien').value;
+                data.mo_ta = document.getElementById('mo_ta').value;
+                data.noi_dung = document.getElementById('noi_dung').value;
+                data.tac_gia = document.getElementById('tac_gia').value;
+                data.loai_tin_id = document.getElementById('loai_tin_id').value;
+                data.tin_hot = document.getElementById('tin_hot').checked;
+                data.trang_thai = document.getElementById('trang_thai').checked;
+            } else if (section === 'users') {
+                data.name = document.getElementById('name').value;
+                data.email = document.getElementById('email').value;
+            }
+
+            const url = id ? `${API_BASE_URL}/${section}/${id}` : `${API_BASE_URL}/${section}`;
+            const method = action === 'create' ? 'POST' : 'PUT';
+
+            try {
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`Lỗi ${response.status}: ${errorData.message || 'Không thể lưu dữ liệu'}`);
+                }
+                closeModal();
+                loadSection(section);
+            } catch (error) {
+                alert(`Lỗi: ${error.message}`);
+            }
+        }
+
+        async function deleteItem(section, id) {
+            if (confirm('Bạn có chắc muốn xóa?')) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/${section}/${id}`, { method: 'DELETE' });
+                    if (!response.ok) throw new Error(`Lỗi ${response.status}: Không thể xóa`);
+                    loadSection(section);
+                } catch (error) {
+                    alert(`Lỗi: ${error.message}`);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
