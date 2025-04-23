@@ -62,7 +62,7 @@
     </div>
 
     <script>
-        const API_BASE_URL = 'https://apiwebnews.onrender.com/api/admin/admin';
+        const API_BASE_URL = 'https://apiwebnews.onrender.com/api/admin';
 
         async function loadSection(section) {
             document.getElementById('section-title').innerText = `Quản lý ${section.replace('-', ' ')}`;
@@ -73,16 +73,12 @@
                 const response = await fetch(`${API_BASE_URL}/${section}`);
                 if (!response.ok) throw new Error(`Lỗi ${response.status}: Không thể tải dữ liệu`);
                 const result = await response.json();
-                const data = result.data;
+                const data = result.data || result; // Handle both { data: [...] } and direct array
 
                 let html = '';
-                if (section !== 'loai-tin') {
-                    html += `<button onclick="openModal('create', '${section}')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg mb-6 transition">Thêm mới</button>`;
-                } else {
-                    html += `<button disabled class="bg-gray-400 text-white px-4 py-2 rounded-lg mb-6 cursor-not-allowed" title="Tạo mới loại tin không được hỗ trợ">Thêm mới</button>`;
-                }
+                html += `<button onclick="openModal('create', '${section}')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg mb-6 transition">Thêm mới</button>`;
                 html += '<table class="w-full border-collapse bg-white rounded-lg shadow"><thead><tr class="bg-gray-100">';
-                
+
                 const headers = {
                     'binh-luan': ['ID', 'Email', 'Thời gian', 'Nội dung', 'Tin', 'Trạng thái', 'Hành động'],
                     'loai-tin': ['ID', 'Tên loại tin', 'Trạng thái', 'Hành động'],
@@ -97,17 +93,17 @@
                 data.forEach(item => {
                     html += '<tr class="hover:bg-gray-50">';
                     if (section === 'binh-luan') {
-                        html += `<td class="border p-3">${item.id}</td><td class="border p-3">${item.email}</td><td class="border p-3">${item.thoi_gian}</td><td class="border p-3">${item.noi_dung}</td><td class="border p-3">${item.tin?.tieu_de || 'N/A'}</td><td class="border p-3">${item.trang_thai ? 'Hoạt động' : 'Ẩn'}</td>`;
+                        html += `<td class="border p-3">${item.Id_binhluan || item.id}</td><td class="border p-3">${item.email}</td><td class="border p-3">${item.Thoigian || item.thoi_gian}</td><td class="border p-3">${item.Noidung || item.noi_dung}</td><td class="border p-3">${item.tin?.Tieude || item.tin?.tieu_de || 'N/A'}</td><td class="border p-3">${(item.Trangthai !== undefined ? item.Trangthai : item.trang_thai) ? 'Hoạt động' : 'Ẩn'}</td>`;
                     } else if (section === 'loai-tin') {
-                        html += `<td class="border p-3">${item.id}</td><td class="border p-3">${item.ten_loai_tin}</td><td class="border p-3">${item.trang_thai ? 'Hoạt động' : 'Ẩn'}</td>`;
+                        html += `<td class="border p-3">${item.Id_loaitin || item.id}</td><td class="border p-3">${item.Ten_loaitin || item.ten_loai_tin}</td><td class="border p-3">${(item.Trangthai !== undefined ? item.Trangthai : item.trang_thai) ? 'Hoạt động' : 'Ẩn'}</td>`;
                     } else if (section === 'nhomtin') {
-                        html += `<td class="border p-3">${item.id}</td><td class="border p-3">${item.ten_nhom_tin}</td><td class="border p-3">${item.trang_thai ? 'Hoạt động' : 'Ẩn'}</td>`;
+                        html += `<td class="border p-3">${item.Id_nhomtin || item.id}</td><td class="border p-3">${item.Ten_nhomtin || item.ten_nhom_tin}</td><td class="border p-3">${(item.Trangthai !== undefined ? item.Trangthai : item.trang_thai) ? 'Hoạt động' : 'Ẩn'}</td>`;
                     } else if (section === 'tin') {
-                        html += `<td class="border p-3">${item.id}</td><td class="border p-3">${item.tieu_de}</td><td class="border p-3">${item.ngay_dang_tin}</td><td class="border p-3">${item.tac_gia}</td><td class="border p-3">${item.tin_hot ? 'Có' : 'Không'}</td><td class="border p-3">${item.trang_thai ? 'Hoạt động' : 'Ẩn'}</td>`;
+                        html += `<td class="border p-3">${item.Id_tin || item.id}</td><td class="border p-3">${item.Tieude || item.tieu_de}</td><td class="border p-3">${item.Ngaydangtin || item.ngay_dang_tin}</td><td class="border p-3">${item.Tacgia || item.tac_gia}</td><td class="border p-3">${(item.Tinhot !== undefined ? item.Tinhot : item.tin_hot) ? 'Có' : 'Không'}</td><td class="border p-3">${(item.Trangthai !== undefined ? item.Trangthai : item.trang_thai) ? 'Hoạt động' : 'Ẩn'}</td>`;
                     } else if (section === 'users') {
                         html += `<td class="border p-3">${item.id}</td><td class="border p-3">${item.name}</td><td class="border p-3">${item.email}</td><td class="border p-3">${item.created_at}</td>`;
                     }
-                    html += `<td class="border p-3"><button onclick="openModal('edit', '${section}', ${item.id})" class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-lg mr-2 transition">Sửa</button> <button onclick="deleteItem('${section}', ${item.id})" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg transition">Xóa</button></td>`;
+                    html += `<td class="border p-3"><button onclick="openModal('edit', '${section}', ${item.Id_binhluan || item.Id_loaitin || item.Id_nhomtin || item.Id_tin || item.id})" class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-lg mr-2 transition">Sửa</button> <button onclick="deleteItem('${section}', ${item.Id_binhluan || item.Id_loaitin || item.Id_nhomtin || item.Id_tin || item.id})" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg transition">Xóa</button></td>`;
                     html += '</tr>';
                 });
 
@@ -115,6 +111,7 @@
                 content.innerHTML = html;
             } catch (error) {
                 content.innerHTML = `<p class="text-red-500">Lỗi: ${error.message}</p>`;
+                console.error('Error loading section:', error);
             }
         }
 
@@ -123,7 +120,7 @@
                 const response = await fetch(`${API_BASE_URL}/${endpoint}`);
                 if (!response.ok) throw new Error(`Lỗi ${response.status}`);
                 const result = await response.json();
-                return result.data;
+                return result.data || result;
             } catch (error) {
                 console.error(`Lỗi khi lấy dữ liệu ${endpoint}:`, error);
                 return [];
@@ -131,57 +128,67 @@
         }
 
         async function openModal(action, section, id = null) {
-            if (section === 'loai-tin' && action === 'create') {
-                alert('Tạo mới loại tin không được hỗ trợ bởi API.');
-                return;
-            }
-
             const modal = document.getElementById('modal');
             const modalTitle = document.getElementById('modal-title');
             const modalContent = document.getElementById('modal-content');
             modalTitle.innerText = action === 'create' ? `Thêm mới ${section.replace('-', ' ')}` : `Chỉnh sửa ${section.replace('-', ' ')}`;
             modalContent.innerHTML = '';
 
+            let data = {};
+            if (action === 'edit' && id) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/${section}/${id}`);
+                    if (!response.ok) throw new Error(`Lỗi ${response.status}: Không thể tải dữ liệu`);
+                    const result = await response.json();
+                    data = result.data || result;
+                } catch (error) {
+                    alert(`Lỗi khi tải dữ liệu: ${error.message}`);
+                    console.error(`Error fetching ${section}/${id}:`, error);
+                    return;
+                }
+            }
+
             if (section === 'binh-luan') {
                 const tins = await fetchOptions('tin');
                 modalContent.innerHTML = `
-                    <select id="tin_id" class="w-full p-2 border rounded mb-3">
+                    <select id="Id_tin" class="w-full p-2 border rounded mb-3" required>
                         <option value="">Chọn tin</option>
-                        ${tins.map(tin => `<option value="${tin.id}">${tin.tieu_de}</option>`).join('')}
+                        ${tins.map(tin => `<option value="${tin.Id_tin || tin.id}" ${data.Id_tin == (tin.Id_tin || tin.id) ? 'selected' : ''}>${tin.Tieude || tin.tieu_de}</option>`).join('')}
                     </select>
-                    <input id="email" class="w-full p-2 border rounded mb-3" placeholder="Email" />
-                    <textarea id="noi_dung" class="w-full p-2 border rounded mb-3" placeholder="Nội dung"></textarea>
-                    <label class="flex items-center"><input type="checkbox" id="trang_thai" class="mr-2" /> Hoạt động</label>
+                    <input id="email" class="w-full p-2 border rounded mb-3" placeholder="Email" value="${data.email || ''}" required />
+                    <textarea id="Noidung" class="w-full p-2 border rounded mb-3" placeholder="Nội dung" required>${data.Noidung || data.noi_dung || ''}</textarea>
+                    <label class="flex items-center"><input type="checkbox" id="Trangthai" class="mr-2" ${data.Trangthai || data.trang_thai ? 'checked' : ''} /> Hoạt động</label>
                 `;
             } else if (section === 'loai-tin') {
                 modalContent.innerHTML = `
-                    <input id="ten_loai_tin" class="w-full p-2 border rounded mb-3" placeholder="Tên loại tin" />
-                    <label class="flex items-center"><input type="checkbox" id="trang_thai" class="mr-2" /> Hoạt động</label>
+                    <input id="Ten_loaitin" class="w-full p-2 border rounded mb-3" placeholder="Tên loại tin" value="${data.Ten_loaitin || data.ten_loai_tin || ''}" required />
+                    <label class="flex items-center"><input type="checkbox" id="Trangthai" class="mr-2" ${data.Trangthai || data.trang_thai ? 'checked' : ''} /> Hoạt động</label>
                 `;
             } else if (section === 'nhomtin') {
                 modalContent.innerHTML = `
-                    <input id="ten_nhom_tin" class="w-full p-2 border rounded mb-3" placeholder="Tên nhóm tin" />
-                    <label class="flex items-center"><input type="checkbox" id="trang_thai" class="mr-2" /> Hoạt động</label>
+                    <input id="Ten_nhomtin" class="w-full p-2 border rounded mb-3" placeholder="Tên nhóm tin" value="${data.Ten_nhomtin || data.ten_nhom_tin || ''}" required />
+                    <label class="flex items-center"><input type="checkbox" id="Trangthai" class="mr-2" ${data.Trangthai || data.trang_thai ? 'checked' : ''} /> Hoạt động</label>
                 `;
             } else if (section === 'tin') {
                 const loaiTins = await fetchOptions('loai-tin');
                 modalContent.innerHTML = `
-                    <input id="tieu_de" class="w-full p-2 border rounded mb-3" placeholder="Tiêu đề" />
-                    <input id="hinh_dai_dien" type="text" class="w-full p-2 border rounded mb-3" placeholder="URL hình đại diện (images/tinX.jpg)" />
-                    <textarea id="mo_ta" class="w-full p-2 border rounded mb-3" placeholder="Mô tả"></textarea>
-                    <textarea id="noi_dung" class="w-full p-2 border rounded mb-3" placeholder="Nội dung"></textarea>
-                    <input id="tac_gia" class="w-full p-2 border rounded mb-3" placeholder="Tác giả" />
-                    <select id="loai_tin_id" class="w-full p-2 border rounded mb-3">
+                    <input id="Tieude" class="w-full p-2 border rounded mb-3" placeholder="Tiêu đề" value="${data.Tieude || data.tieu_de || ''}" required />
+                    <input id="Hinhdaidien" type="text" class="w-full p-2 border rounded mb-3" placeholder="URL hình đại diện (images/tinX.jpg)" value="${data.Hinhdaidien || data.hinh_dai_dien || ''}" />
+                    <textarea id="Mota" class="w-full p-2 border rounded mb-3" placeholder="Mô tả" required>${data.Mota || data.mo_ta || ''}</textarea>
+                    <textarea id="Noidung" class="w-full p-2 border rounded mb-3" placeholder="Nội dung" required>${data.Noidung || data.noi_dung || ''}</textarea>
+                    <input id="Tacgia" class="w-full p-2 border rounded mb-3" placeholder="Tác giả" value="${data.Tacgia || data.tac_gia || ''}" required />
+                    <select id="Id_loaitin" class="w-full p-2 border rounded mb-3" required>
                         <option value="">Chọn loại tin</option>
-                        ${loaiTins.map(lt => `<option value="${lt.id}">${lt.ten_loai_tin}</option>`).join('')}
+                        ${loaiTins.map(lt => `<option value="${lt.Id_loaitin || lt.id}" ${data.Id_loaitin == (lt.Id_loaitin || lt.id) ? 'selected' : ''}>${lt.Ten_loaitin || lt.ten_loai_tin}</option>`).join('')}
                     </select>
-                    <label class="flex items-center mb-3"><input type="checkbox" id="tin_hot" class="mr-2" /> Tin hot</label>
-                    <label class="flex items-center"><input type="checkbox" id="trang_thai" class="mr-2" /> Hoạt động</label>
+                    <label class="flex items-center mb-3"><input type="checkbox" id="Tinhot" class="mr-2" ${data.Tinhot || data.tin_hot ? 'checked' : ''} /> Tin hot</label>
+                    <label class="flex items-center"><input type="checkbox" id="Trangthai" class="mr-2" ${data.Trangthai || data.trang_thai ? 'checked' : ''} /> Hoạt động</label>
                 `;
             } else if (section === 'users') {
                 modalContent.innerHTML = `
-                    <input id="name" class="w-full p-2 border rounded mb-3" placeholder="Tên" />
-                    <input id="email" class="w-full p-2 border rounded mb-3" placeholder="Email" />
+                    <input id="name" class="w-full p-2 border rounded mb-3" placeholder="Tên" value="${data.name || ''}" required />
+                    <input id="email" class="w-full p-2 border rounded mb-3" placeholder="Email" value="${data.email || ''}" required />
+                    <input id="password" type="password" class="w-full p-2 border rounded mb-3" placeholder="Mật khẩu (để trống nếu không thay đổi)" />
                 `;
             }
 
@@ -198,36 +205,58 @@
         }
 
         async function saveItem(action, section, id) {
-            if (section === 'loai-tin' && action === 'create') {
-                alert('Tạo mới loại tin không được hỗ trợ bởi API.');
-                return;
-            }
-
             const data = {};
+            let isValid = true;
+            const requiredFields = [];
+
             if (section === 'binh-luan') {
-                data.tin_id = document.getElementById('tin_id').value;
+                data.Id_tin = document.getElementById('Id_tin').value;
                 data.email = document.getElementById('email').value;
-                data.noi_dung = document.getElementById('noi_dung').value;
-                data.trang_thai = document.getElementById('trang_thai').checked;
+                data.Noidung = document.getElementById('Noidung').value;
+                data.Trangthai = document.getElementById('Trangthai').checked;
+                requiredFields.push({ id: 'Id_tin', name: 'Tin' }, { id: 'email', name: 'Email' }, { id: 'Noidung', name: 'Nội dung' });
             } else if (section === 'loai-tin') {
-                data.ten_loai_tin = document.getElementById('ten_loai_tin').value;
-                data.trang_thai = document.getElementById('trang_thai').checked;
+                data.Ten_loaitin = document.getElementById('Ten_loaitin').value;
+                data.Trangthai = document.getElementById('Trangthai').checked;
+                requiredFields.push({ id: 'Ten_loaitin', name: 'Tên loại tin' });
             } else if (section === 'nhomtin') {
-                data.ten_nhom_tin = document.getElementById('ten_nhom_tin').value;
-                data.trang_thai = document.getElementById('trang_thai').checked;
+                data.Ten_nhomtin = document.getElementById('Ten_nhomtin').value;
+                data.Trangthai = document.getElementById('Trangthai').checked;
+                requiredFields.push({ id: 'Ten_nhomtin', name: 'Tên nhóm tin' });
             } else if (section === 'tin') {
-                data.tieu_de = document.getElementById('tieu_de').value;
-                data.hinh_dai_dien = document.getElementById('hinh_dai_dien').value;
-                data.mo_ta = document.getElementById('mo_ta').value;
-                data.noi_dung = document.getElementById('noi_dung').value;
-                data.tac_gia = document.getElementById('tac_gia').value;
-                data.loai_tin_id = document.getElementById('loai_tin_id').value;
-                data.tin_hot = document.getElementById('tin_hot').checked;
-                data.trang_thai = document.getElementById('trang_thai').checked;
+                data.Tieude = document.getElementById('Tieude').value;
+                data.Hinhdaidien = document.getElementById('Hinhdaidien').value;
+                data.Mota = document.getElementById('Mota').value;
+                data.Noidung = document.getElementById('Noidung').value;
+                data.Tacgia = document.getElementById('Tacgia').value;
+                data.Id_loaitin = document.getElementById('Id_loaitin').value;
+                data.Tinhot = document.getElementById('Tinhot').checked;
+                data.Trangthai = document.getElementById('Trangthai').checked;
+                requiredFields.push(
+                    { id: 'Tieude', name: 'Tiêu đề' },
+                    { id: 'Mota', name: 'Mô tả' },
+                    { id: 'Noidung', name: 'Nội dung' },
+                    { id: 'Tacgia', name: 'Tác giả' },
+                    { id: 'Id_loaitin', name: 'Loại tin' }
+                );
             } else if (section === 'users') {
                 data.name = document.getElementById('name').value;
                 data.email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                if (password) data.password = password;
+                requiredFields.push({ id: 'name', name: 'Tên' }, { id: 'email', name: 'Email' });
+                if (action === 'create') requiredFields.push({ id: 'password', name: 'Mật khẩu' });
             }
+
+            // Validate required fields
+            requiredFields.forEach(field => {
+                if (!document.getElementById(field.id).value) {
+                    isValid = false;
+                    alert(`Vui lòng nhập ${field.name}`);
+                }
+            });
+
+            if (!isValid) return;
 
             const url = id ? `${API_BASE_URL}/${section}/${id}` : `${API_BASE_URL}/${section}`;
             const method = action === 'create' ? 'POST' : 'PUT';
@@ -235,17 +264,23 @@
             try {
                 const response = await fetch(url, {
                     method,
-                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        // Uncomment and add token if authentication is required
+                        // 'Authorization': 'Bearer YOUR_TOKEN'
+                    },
                     body: JSON.stringify(data)
                 });
+                const responseData = await response.json();
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(`Lỗi ${response.status}: ${errorData.message || 'Không thể lưu dữ liệu'}`);
+                    throw new Error(`Lỗi ${response.status}: ${responseData.message || 'Không thể lưu dữ liệu'}`);
                 }
                 closeModal();
                 loadSection(section);
             } catch (error) {
                 alert(`Lỗi: ${error.message}`);
+                console.error(`Error saving ${section}:`, error, 'Response:', responseData);
             }
         }
 
@@ -253,13 +288,18 @@
             if (confirm('Bạn có chắc muốn xóa?')) {
                 try {
                     const response = await fetch(`${API_BASE_URL}/${section}/${id}`, { method: 'DELETE' });
-                    if (!response.ok) throw new Error(`Lỗi ${response.status}: Không thể xóa`);
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(`Lỗi ${response.status}: ${errorData.message || 'Không thể xóa'}`);
+                    }
                     loadSection(section);
                 } catch (error) {
                     alert(`Lỗi: ${error.message}`);
+                    console.error(`Error deleting ${section}:`, error);
                 }
             }
         }
     </script>
+    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'934a0d6ec8b3b07d',t:'MTc0NTM3NjYxNi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
 </body>
 </html>
